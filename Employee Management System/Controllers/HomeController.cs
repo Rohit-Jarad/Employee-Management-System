@@ -25,7 +25,7 @@ namespace Employee_Management_System.Controllers
 
         public IActionResult Privacy()
         {
-            return View("Rohit Jarad");
+            return View();
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

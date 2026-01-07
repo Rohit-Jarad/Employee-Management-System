@@ -19,10 +19,12 @@ namespace Employee_Management_System
 
             // Configure Database Connection
             // Update connection string in appsettings.json
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("DefaultConnection") ??
-                    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                    options.UseSqlServer(connectionString));
+            }
 
             // Register Repositories
             builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
@@ -62,9 +64,7 @@ namespace Employee_Management_System
             app.UseAuthentication();
             app.UseAuthorization();
 
-            app.MapControllerRoute(
-                name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+            app.MapDefaultControllerRoute();
 
             app.Run();
         }
