@@ -11,6 +11,7 @@ namespace Employee_Management_System.Data
         }
 
         public DbSet<Employee> Employees { get; set; }
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -30,6 +31,19 @@ namespace Employee_Management_System.Data
 
                 // Index on Email for faster lookups
                 entity.HasIndex(e => e.Email).IsUnique();
+            });
+
+            // Configure User entity
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.Id);
+                entity.Property(u => u.FirstName).IsRequired().HasMaxLength(50);
+                entity.Property(u => u.LastName).IsRequired().HasMaxLength(50);
+                entity.Property(u => u.Email).IsRequired().HasMaxLength(255);
+                entity.Property(u => u.PasswordHash).IsRequired().HasMaxLength(255);
+
+                // Index on Email for faster lookups
+                entity.HasIndex(u => u.Email).IsUnique();
             });
         }
     }

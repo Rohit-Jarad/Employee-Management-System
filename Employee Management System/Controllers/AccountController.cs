@@ -3,17 +3,21 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using Employee_Management_System.Models.ViewModels;
+using Employee_Management_System.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Employee_Management_System.Controllers
 {
-    [Authorize]
     public class AccountController : Controller
     {
+        private readonly IAuthService _authService;
         private readonly ILogger<AccountController> _logger;
 
-        public AccountController(ILogger<AccountController> logger)
+        public AccountController(
+            IAuthService authService,
+            ILogger<AccountController> logger)
         {
+            _authService = authService;
             _logger = logger;
         }
 
@@ -33,19 +37,24 @@ namespace Employee_Management_System.Controllers
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                // TODO: Implement actual authentication logic
-                // For now, this is a placeholder that accepts any email/password
-                // You'll need to integrate with ASP.NET Core Identity or your authentication service
-                
-                // Example authentication check (replace with actual authentication)
-                if (model.Email != null && model.Password != null)
+                return View(model);
+            }
+
+            try
+            {
+                var user = await _authService.AuthenticateAsync(model.Email, model.Password);
+
+                if (user != null)
                 {
+                    // Create claims for the authenticated user
                     var claims = new List<Claim>
                     {
-                        new Claim(ClaimTypes.Name, model.Email),
-                        new Claim(ClaimTypes.Email, model.Email)
+                        new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                        new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                        new Claim(ClaimTypes.Email, user.Email),
+                        new Claim("FullName", $"{user.FirstName} {user.LastName}")
                     };
 
                     var claimsIdentity = new ClaimsIdentity(
@@ -53,7 +62,10 @@ namespace Employee_Management_System.Controllers
 
                     var authProperties = new AuthenticationProperties
                     {
-                        IsPersistent = model.RememberMe
+                        IsPersistent = model.RememberMe,
+                        ExpiresUtc = model.RememberMe 
+                            ? DateTimeOffset.UtcNow.AddDays(30) 
+                            : DateTimeOffset.UtcNow.AddMinutes(30)
                     };
 
                     await HttpContext.SignInAsync(
@@ -61,12 +73,17 @@ namespace Employee_Management_System.Controllers
                         new ClaimsPrincipal(claimsIdentity),
                         authProperties);
 
-                    _logger.LogInformation("User {Email} logged in.", model.Email);
+                    _logger.LogInformation("User {Email} logged in successfully.", model.Email);
 
                     return RedirectToLocal(returnUrl);
                 }
 
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                ModelState.AddModelError(string.Empty, "Invalid email or password.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during login for user {Email}", model.Email);
+                ModelState.AddModelError(string.Empty, "An error occurred during login. Please try again.");
             }
 
             return View(model);
@@ -85,14 +102,40 @@ namespace Employee_Management_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                // TODO: Implement actual user registration logic
-                // You'll need to integrate with ASP.NET Core Identity or your user service
-                
-                // For now, after registration, redirect to login
-                TempData["SuccessMessage"] = "Registration successful. Please login.";
+                return View(model);
+            }
+
+            try
+            {
+                // Check if user already exists
+                if (await _authService.UserExistsAsync(model.Email))
+                {
+                    ModelState.AddModelError(nameof(model.Email), "A user with this email already exists.");
+                    return View(model);
+                }
+
+                // Register the new user
+                var user = await _authService.RegisterAsync(
+                    model.FirstName,
+                    model.LastName,
+                    model.Email,
+                    model.Password);
+
+                _logger.LogInformation("New user registered with email {Email}", model.Email);
+
+                TempData["SuccessMessage"] = "Registration successful! Please login with your credentials.";
                 return RedirectToAction(nameof(Login));
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during registration for user {Email}", model.Email);
+                ModelState.AddModelError("", "An error occurred during registration. Please try again.");
             }
 
             return View(model);
@@ -101,10 +144,22 @@ namespace Employee_Management_System.Controllers
         // POST: Account/Logout
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             _logger.LogInformation("User logged out.");
+            TempData["SuccessMessage"] = "You have been logged out successfully.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        // GET: Account/Logout (for direct navigation)
+        [Authorize]
+        public async Task<IActionResult> LogoutGet()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            _logger.LogInformation("User logged out.");
+            TempData["SuccessMessage"] = "You have been logged out successfully.";
             return RedirectToAction(nameof(Login));
         }
 

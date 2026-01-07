@@ -15,6 +15,11 @@ namespace Employee_Management_System.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity!.IsAuthenticated)
+            {
+                ViewData["IsAuthenticated"] = true;
+                ViewData["UserName"] = User.Identity.Name;
+            }
             return View();
         }
 

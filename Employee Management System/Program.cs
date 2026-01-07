@@ -26,9 +26,11 @@ namespace Employee_Management_System
 
             // Register Repositories
             builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             // Register Services
             builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+            builder.Services.AddScoped<IAuthService, AuthService>();
 
             // Configure Authentication
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
