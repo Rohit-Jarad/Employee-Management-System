@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using Employee_Management_System.Models;
+using Employee_Management_System.Models.DTOs;
+using Employee_Management_System.Models.ViewModels;
 using Employee_Management_System.Services.Interfaces;
 
 namespace Employee_Management_System.Controllers
@@ -22,8 +23,18 @@ namespace Employee_Management_System.Controllers
         // GET: Employee
         public async Task<IActionResult> Index()
         {
-            var employees = await _employeeService.GetAllEmployeesAsync();
-            return View(employees);
+            try
+            {
+                var employeeDtos = await _employeeService.GetAllEmployeesAsync();
+                var viewModels = employeeDtos.Select(MapToViewModel);
+                return View(viewModels);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading employees");
+                TempData["ErrorMessage"] = "An error occurred while loading employees.";
+                return View(new List<EmployeeViewModel>());
+            }
         }
 
         // GET: Employee/Details/5
@@ -34,37 +45,58 @@ namespace Employee_Management_System.Controllers
                 return NotFound();
             }
 
-            var employee = await _employeeService.GetEmployeeByIdAsync(id.Value);
-            if (employee == null)
+            try
             {
-                return NotFound();
-            }
+                var employeeDto = await _employeeService.GetEmployeeByIdAsync(id.Value);
+                if (employeeDto == null)
+                {
+                    return NotFound();
+                }
 
-            return View(employee);
+                var viewModel = MapToViewModel(employeeDto);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving employee details");
+                TempData["ErrorMessage"] = "An error occurred while retrieving employee details.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // GET: Employee/Create
         public IActionResult Create()
         {
-            return View();
+            return View(new CreateEmployeeDto());
         }
 
         // POST: Employee/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Employee employee)
+        public async Task<IActionResult> Create(CreateEmployeeDto createDto)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var result = await _employeeService.CreateEmployeeAsync(employee);
-                if (result)
-                {
-                    TempData["SuccessMessage"] = "Employee created successfully.";
-                    return RedirectToAction(nameof(Index));
-                }
-                ModelState.AddModelError("", "Unable to create employee. Please try again.");
+                return View(createDto);
             }
-            return View(employee);
+
+            try
+            {
+                var employeeDto = await _employeeService.CreateEmployeeAsync(createDto);
+                TempData["SuccessMessage"] = "Employee created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(createDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating employee");
+                ModelState.AddModelError("", "Unable to create employee. Please try again.");
+                return View(createDto);
+            }
         }
 
         // GET: Employee/Edit/5
@@ -75,36 +107,62 @@ namespace Employee_Management_System.Controllers
                 return NotFound();
             }
 
-            var employee = await _employeeService.GetEmployeeByIdAsync(id.Value);
-            if (employee == null)
+            try
             {
-                return NotFound();
-            }
+                var employeeDto = await _employeeService.GetEmployeeByIdAsync(id.Value);
+                if (employeeDto == null)
+                {
+                    return NotFound();
+                }
 
-            return View(employee);
+                var updateDto = MapToUpdateDto(employeeDto);
+                return View(updateDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving employee for edit");
+                TempData["ErrorMessage"] = "An error occurred while retrieving employee details.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // POST: Employee/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Employee employee)
+        public async Task<IActionResult> Edit(int id, UpdateEmployeeDto updateDto)
         {
-            if (id != employee.Id)
+            if (id != updateDto.Id)
             {
                 return NotFound();
             }
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var result = await _employeeService.UpdateEmployeeAsync(employee);
-                if (result)
-                {
-                    TempData["SuccessMessage"] = "Employee updated successfully.";
-                    return RedirectToAction(nameof(Index));
-                }
-                ModelState.AddModelError("", "Unable to update employee. Please try again.");
+                return View(updateDto);
             }
-            return View(employee);
+
+            try
+            {
+                var employeeDto = await _employeeService.UpdateEmployeeAsync(updateDto);
+                if (employeeDto == null)
+                {
+                    return NotFound();
+                }
+
+                TempData["SuccessMessage"] = "Employee updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(updateDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating employee");
+                ModelState.AddModelError("", "Unable to update employee. Please try again.");
+                return View(updateDto);
+            }
         }
 
         // GET: Employee/Delete/5
@@ -115,13 +173,23 @@ namespace Employee_Management_System.Controllers
                 return NotFound();
             }
 
-            var employee = await _employeeService.GetEmployeeByIdAsync(id.Value);
-            if (employee == null)
+            try
             {
-                return NotFound();
-            }
+                var employeeDto = await _employeeService.GetEmployeeByIdAsync(id.Value);
+                if (employeeDto == null)
+                {
+                    return NotFound();
+                }
 
-            return View(employee);
+                var viewModel = MapToViewModel(employeeDto);
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving employee for delete");
+                TempData["ErrorMessage"] = "An error occurred while retrieving employee details.";
+                return RedirectToAction(nameof(Index));
+            }
         }
 
         // POST: Employee/Delete/5
@@ -129,17 +197,62 @@ namespace Employee_Management_System.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var result = await _employeeService.DeleteEmployeeAsync(id);
-            if (result)
+            try
             {
-                TempData["SuccessMessage"] = "Employee deleted successfully.";
+                var result = await _employeeService.DeleteEmployeeAsync(id);
+                if (result)
+                {
+                    TempData["SuccessMessage"] = "Employee deleted successfully.";
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Employee not found or could not be deleted.";
+                }
             }
-            else
+            catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "Unable to delete employee. Please try again.";
+                _logger.LogError(ex, "Error deleting employee");
+                TempData["ErrorMessage"] = "An error occurred while deleting the employee.";
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        // Mapping Methods: DTO ↔ ViewModel
+        private static EmployeeViewModel MapToViewModel(EmployeeDto dto)
+        {
+            return new EmployeeViewModel
+            {
+                Id = dto.Id,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                PhoneNumber = dto.PhoneNumber,
+                Department = dto.Department,
+                Position = dto.Position,
+                DateOfBirth = dto.DateOfBirth,
+                HireDate = dto.HireDate,
+                Salary = dto.Salary,
+                CreatedAt = dto.CreatedAt,
+                UpdatedAt = dto.UpdatedAt
+            };
+        }
+
+        private static UpdateEmployeeDto MapToUpdateDto(EmployeeDto dto)
+        {
+            return new UpdateEmployeeDto
+            {
+                Id = dto.Id,
+                FirstName = dto.FirstName,
+                LastName = dto.LastName,
+                Email = dto.Email,
+                PhoneNumber = dto.PhoneNumber,
+                Department = dto.Department,
+                Position = dto.Position,
+                DateOfBirth = dto.DateOfBirth,
+                HireDate = dto.HireDate,
+                Salary = dto.Salary
+            };
         }
     }
 }

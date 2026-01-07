@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Employee_Management_System.Data;
 using Employee_Management_System.Services;
 using Employee_Management_System.Services.Interfaces;
+using Employee_Management_System.Repositories;
+using Employee_Management_System.Repositories.Interfaces;
 
 namespace Employee_Management_System
 {
@@ -21,6 +23,9 @@ namespace Employee_Management_System
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection") ??
                     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+
+            // Register Repositories
+            builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 
             // Register Services
             builder.Services.AddScoped<IEmployeeService, EmployeeService>();
