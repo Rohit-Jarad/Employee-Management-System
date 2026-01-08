@@ -2,23 +2,94 @@
     ViewData["Title"] = "Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome to Employee Management System</h1>
-    
-    @if (User.Identity!.IsAuthenticated)
-    {
-        <p class="lead mt-4">Hello, <strong>@User.Identity.Name</strong>!</p>
-        <p class="mt-3">You can now manage employees in the system.</p>
-        <div class="mt-4">
-            <a asp-controller="Employee" asp-action="Index" class="btn btn-primary btn-lg">Manage Employees</a>
-        </div>
+<style>
+    body {
+        margin: 0;
     }
-    else
-    {
-        <p class="lead mt-4">Please login to access the employee management features.</p>
-        <div class="mt-4">
-            <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg me-2">Login</a>
-            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-primary btn-lg">Register</a>
-        </div>
+
+    .home-hero {
+        min-height: 90vh;
+        background: linear-gradient( rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65) ), url('/images/office-bg.jpg');
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
     }
+
+    .home-card {
+        background: rgba(255, 255, 255, 0.95);
+        color: #333;
+        padding: 40px;
+        border-radius: 15px;
+        max-width: 650px;
+        width: 100%;
+        text-align: center;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+
+        .home-card h1 {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #0d6efd;
+        }
+
+        .home-card p {
+            font-size: 1.1rem;
+        }
+
+    .btn-lg {
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        border-radius: 30px;
+    }
+</style>
+
+<div class="home-hero">
+    <div class="home-card">
+
+        <h1 class="display-6">Employee Management System</h1>
+
+        @if (User.Identity!.IsAuthenticated)
+        {
+            <p class="lead mt-4">
+                Welcome back,
+                <strong>@User.Identity.Name</strong> 👋
+            </p>
+
+            <p class="mt-3">
+                Manage employees, roles, and records easily from one place.
+            </p>
+
+            <div class="mt-4">
+                <a asp-controller="Employee"
+                   asp-action="Index"
+                   class="btn btn-primary btn-lg">
+                    Manage Employees
+                </a>
+            </div>
+        }
+        else
+        {
+            <p class="lead mt-4">
+                Please log in to access the employee management features.
+            </p>
+
+            <div class="mt-4">
+                <a asp-controller="Account"
+                   asp-action="Login"
+                   class="btn btn-primary btn-lg me-3">
+                    Login
+                </a>
+
+                <a asp-controller="Account"
+                   asp-action="Register"
+                   class="btn btn-outline-primary btn-lg">
+                    Register
+                </a>
+            </div>
+        }
+
+    </div>
 </div>
