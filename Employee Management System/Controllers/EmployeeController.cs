@@ -6,7 +6,7 @@ using Employee_Management_System.Services.Interfaces;
 
 namespace Employee_Management_System.Controllers
 {
-    [Authorize] // Require authentication to access employee management
+    [Authorize]
     public class EmployeeController : Controller
     {
         private readonly IEmployeeService _employeeService;
@@ -20,22 +20,6 @@ namespace Employee_Management_System.Controllers
             _logger = logger;
         }
 
-        // GET: Employee
-        //public async Task<IActionResult> Index()
-        //{
-        //    try
-        //    {
-        //        var employeeDtos = await _employeeService.GetAllEmployeesAsync();
-        //        var viewModels = employeeDtos.Select(MapToViewModel);
-        //        return View(viewModels);
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error loading employees");
-        //        TempData["ErrorMessage"] = "An error occurred while loading employees.";
-        //        return View(new List<EmployeeViewModel>());
-        //    }
-        //}
         public async Task<IActionResult> Index(
         string? searchTerm,
         string? sortColumn,
