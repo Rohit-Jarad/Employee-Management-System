@@ -1,5 +1,6 @@
 using Employee_Management_System.Models.DTOs;
 using Employee_Management_System.Models.Entities;
+using Employee_Management_System.Models.ViewModels;
 using Employee_Management_System.Repositories.Interfaces;
 using Employee_Management_System.Services.Interfaces;
 
@@ -71,14 +72,12 @@ namespace Employee_Management_System.Services
         {
             try
             {
-                // Business logic: Check if employee exists
                 var existingEmployee = await _repository.GetByIdAsync(updateDto.Id);
                 if (existingEmployee == null)
                 {
                     return null;
                 }
 
-                // Business logic: Check if email is taken by another employee
                 if (await _repository.EmailExistsAsync(updateDto.Email, updateDto.Id))
                 {
                     throw new InvalidOperationException($"An employee with email '{updateDto.Email}' already exists.");
@@ -117,8 +116,36 @@ namespace Employee_Management_System.Services
         {
             return await _repository.EmailExistsAsync(email, excludeId);
         }
+        public async Task<PagedResult<EmployeeDto>> GetPagedEmployeesAsync(
+        string? search,
+        string? sortColumn,
+        string? sortDirection,
+        int pageNumber,
+        int pageSize)
+        {
+            var (employees, totalCount) =
+                await _repository.GetPagedAsync(
+                    search,
+                    sortColumn,
+                    sortDirection,
+                    pageNumber,
+                    pageSize);
 
-        // Mapping Methods: Entity ↔ DTO
+            return new PagedResult<EmployeeDto>
+            {
+                Items = employees.Select(MapToDto),
+                TotalRecords = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
+        public async Task<int> GetTotalDepartmentsAsync()
+        {
+            return await _repository.GetTotalDepartmentsAsync();
+        }
+
+
+
         private static EmployeeDto MapToDto(Employee employee)
         {
             return new EmployeeDto

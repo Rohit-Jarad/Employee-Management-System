@@ -81,6 +81,10 @@ namespace Employee_Management_System.Services
             var user = await _userRepository.GetByEmailAsync(email);
             return user != null;
         }
+        public async Task<int> GetActiveUsersCountAsync()
+        {
+            return await _userRepository.GetActiveUsersCountAsync();
+        }
 
         // Password hashing using SHA256 (simple approach)
         // For production, consider using bcrypt or ASP.NET Core Identity's PasswordHasher

@@ -21,21 +21,93 @@ namespace Employee_Management_System.Controllers
         }
 
         // GET: Employee
-        public async Task<IActionResult> Index()
+        //public async Task<IActionResult> Index()
+        //{
+        //    try
+        //    {
+        //        var employeeDtos = await _employeeService.GetAllEmployeesAsync();
+        //        var viewModels = employeeDtos.Select(MapToViewModel);
+        //        return View(viewModels);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error loading employees");
+        //        TempData["ErrorMessage"] = "An error occurred while loading employees.";
+        //        return View(new List<EmployeeViewModel>());
+        //    }
+        //}
+        public async Task<IActionResult> Index(
+        string? searchTerm,
+        string? sortColumn,
+        string? sortDirection,
+        int pageNumber = 1)
         {
             try
             {
-                var employeeDtos = await _employeeService.GetAllEmployeesAsync();
-                var viewModels = employeeDtos.Select(MapToViewModel);
-                return View(viewModels);
+                // 1️⃣ Get DTOs from service
+                var dtoResult = await _employeeService.GetPagedEmployeesAsync(
+                    searchTerm,
+                    sortColumn,
+                    sortDirection,
+                    pageNumber,
+                    5);
+
+                // 2️⃣ Convert DTO → ViewModel
+                var viewModelResult = new PagedResult<EmployeeViewModel>
+                {
+                    Items = dtoResult.Items.Select(MapToViewModel).ToList(),
+                    PageNumber = dtoResult.PageNumber,
+                    PageSize = dtoResult.PageSize,
+                    TotalRecords = dtoResult.TotalRecords
+                };
+
+                ViewBag.SearchTerm = searchTerm;
+                ViewBag.SortColumn = sortColumn;
+                ViewBag.SortDirection = sortDirection;
+
+                return View(viewModelResult);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading employees");
                 TempData["ErrorMessage"] = "An error occurred while loading employees.";
-                return View(new List<EmployeeViewModel>());
+
+                return View(new PagedResult<EmployeeViewModel>());
             }
         }
+
+        public async Task<IActionResult> ExportToExcel()
+        {
+            var employees = await _employeeService.GetAllEmployeesAsync();
+
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var ws = workbook.Worksheets.Add("Employees");
+
+            ws.Cell(1, 1).Value = "Name";
+            ws.Cell(1, 2).Value = "Email";
+            ws.Cell(1, 3).Value = "Department";
+            ws.Cell(1, 4).Value = "Position";
+            ws.Cell(1, 5).Value = "Phone";
+
+            int row = 2;
+            foreach (var e in employees)
+            {
+                ws.Cell(row, 1).Value = $"{e.FirstName} {e.LastName}";
+                ws.Cell(row, 2).Value = e.Email;
+                ws.Cell(row, 3).Value = e.Department;
+                ws.Cell(row, 4).Value = e.Position;
+                ws.Cell(row, 5).Value = e.PhoneNumber;
+                row++;
+            }
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "Employees.xlsx");
+        }
+
 
         // GET: Employee/Details/5
         public async Task<IActionResult> Details(int? id)

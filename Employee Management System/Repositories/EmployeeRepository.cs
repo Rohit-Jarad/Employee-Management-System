@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Employee_Management_System.Data;
 using Employee_Management_System.Models.Entities;
 using Employee_Management_System.Repositories.Interfaces;
@@ -133,5 +133,59 @@ namespace Employee_Management_System.Repositories
             }
             return await _context.Employees.AnyAsync(e => e.Email == email);
         }
+
+        public async Task<(IEnumerable<Employee> Employees, int TotalCount)>
+         GetPagedAsync(string? search,
+                  string? sortColumn,
+                  string? sortDirection,
+                  int pageNumber,
+                  int pageSize)
+        {
+            IQueryable<Employee> query = _context.Employees;
+
+            // 🔍 SEARCH
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(e =>
+                    e.FirstName.Contains(search) ||
+                    e.LastName.Contains(search) ||
+                    e.Email.Contains(search) ||
+                    e.Department!.Contains(search) ||
+                    e.Position!.Contains(search));
+            }
+
+            // 🔃 SORT
+            query = (sortColumn, sortDirection?.ToLower()) switch
+            {
+                ("name", "desc") => query.OrderByDescending(e => e.FirstName),
+                ("email", "desc") => query.OrderByDescending(e => e.Email),
+                ("department", "desc") => query.OrderByDescending(e => e.Department),
+                ("position", "desc") => query.OrderByDescending(e => e.Position),
+
+                ("email", _) => query.OrderBy(e => e.Email),
+                ("department", _) => query.OrderBy(e => e.Department),
+                ("position", _) => query.OrderBy(e => e.Position),
+
+                _ => query.OrderBy(e => e.FirstName)
+            };
+
+            int totalCount = await query.CountAsync();
+
+            var employees = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (employees, totalCount);
+        }
+        public async Task<int> GetTotalDepartmentsAsync()
+        {
+            return await _context.Employees
+                .Where(e => !string.IsNullOrEmpty(e.Department))
+                .Select(e => e.Department)
+                .Distinct()
+                .CountAsync();
+        }
+
     }
 }

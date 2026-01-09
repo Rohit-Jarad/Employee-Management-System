@@ -7,5 +7,6 @@ namespace Employee_Management_System.Services.Interfaces
         Task<User?> AuthenticateAsync(string email, string password);
         Task<User> RegisterAsync(string firstName, string lastName, string email, string password);
         Task<bool> UserExistsAsync(string email);
+        Task<int> GetActiveUsersCountAsync();
     }
 }

@@ -44,6 +44,11 @@ namespace Employee_Management_System.Repositories
                 throw;
             }
         }
+        public async Task<int> GetActiveUsersCountAsync()
+        {
+            // Assuming all users are active
+            return await _context.Users.CountAsync();
+        }
 
         public async Task<User> CreateAsync(User user)
         {

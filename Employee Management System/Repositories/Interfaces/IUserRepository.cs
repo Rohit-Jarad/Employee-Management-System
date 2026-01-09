@@ -10,5 +10,6 @@ namespace Employee_Management_System.Repositories.Interfaces
         Task<User> UpdateAsync(User user);
         Task<bool> DeleteAsync(int id);
         Task<bool> ExistsAsync(int id);
+        Task<int> GetActiveUsersCountAsync();
     }
 }
